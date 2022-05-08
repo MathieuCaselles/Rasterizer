@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream& os, const sf::Vector2u& vector2D)
 /// <param name="rowStart">Starting height of the line </param>
 /// <param name="rowEnd">Ending height of the line  </param>
 /// <param name="color"></param>
-void DrawVerticalLine(sf::Image& image, int x, int yStart, int yEnd, const sf::Color& color)
+void drawVerticalLine(sf::Image& image, int x, int yStart, int yEnd, const sf::Color& color)
 {
     for (int y = yStart; y <= yEnd; y++)
     {
@@ -45,7 +45,7 @@ void DrawVerticalLine(sf::Image& image, int x, int yStart, int yEnd, const sf::C
 /// <param name="color"></param>
 /// <param name="filled">if true rect will be filled with color </param>
 /// 
-void DrawRect(sf::Image& image, const sf::Vector2i& origin, const sf::Vector2i& size, const sf::Color& color, bool filled = true)
+void drawRect(sf::Image& image, const sf::Vector2i& origin, const sf::Vector2i& size, const sf::Color& color, bool filled = true)
 {
   
     for (int y = 0; y < size.y; ++y)
@@ -165,7 +165,7 @@ inline bool CantFindVerticalWall(float angle) {
     return ((abs(angle) >= 89.f && abs(angle) <= 91.f) || (abs(angle) >= 269.f && abs(angle) <= 271.f));
 }
 
-inline int GetAreaValue(sf::Vector2f area){
+inline int getAreaValue(sf::Vector2f area){
     return g_worldMap[(int)floorf(area.x)][(int)floorf(area.y)];
 }
 
@@ -179,7 +179,7 @@ const sf::Vector2f GetFirstAreaFound(const sf::Vector2f& cameraPosition, const s
     );
 
 
-    while (GetAreaValue(nextArea) == 0)
+    while (getAreaValue(nextArea) == 0)
     {
         nextArea = {
             nextArea.x + rayDirectionReduced.x,
@@ -366,20 +366,13 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
         const float heightWall = 1.f / distanceToWall * g_distanceToProjectionPlane;
         const int startY = g_centerprojectionPlane.y - heightWall / 2;
 
-        auto start = GetTickCount64();
-
-// Fill image with blue color for sky
-        DrawVerticalLine(
-            raster,
+        drawVerticalLine(
+            raster, 
             g_projectionPlane.x - 1 - column, // because get ray dir draws rays from right to left
-            ClampFloat(startY, 0, g_projectionPlane.y - 1),
-            ClampFloat(startY + heightWall - 1, 0, g_projectionPlane.y - 1),
-            g_Color[GetAreaValue(area)]
+            ClampFloat(startY, 0, g_projectionPlane.y - 1), 
+            ClampFloat(startY + heightWall - 1, 0, g_projectionPlane.y - 1), 
+            g_Color[getAreaValue(area)]
         );
-        auto end = GetTickCount64();
-        auto delta = (end - start) / 1000.0f;
-        printf("Time DrawVerticalLine : %f s\n", delta);
-
     }
 }
 // -------------------------------------------------------------------
@@ -389,7 +382,6 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
 
 int main()
 {
-
     sf::Vector2i resolutionScreen = g_projectionPlane;
     sf::RenderWindow window(sf::VideoMode(resolutionScreen.x, resolutionScreen.y), "SFML Raycaster");
 
@@ -434,8 +426,6 @@ int main()
     sf::Time updateTime;
     while (window.isOpen())
     {
-        //auto start = GetTickCount64();
-
         // Update delta time
         sf::Time elapsed = clock.restart();
         if (elapsed.asSeconds() > 0.1f)
@@ -479,32 +469,12 @@ int main()
         window.clear(sf::Color(0, 128, 0));
 
         {
-            {
-                //auto start = GetTickCount64();
+            // Fill image with blue color for sky
+            drawRect(raster, sf::Vector2i(0, 0), { resolutionScreen.x, resolutionScreen.y / 2 }, sf::Color::Blue);
+            //Fill image with brown color for floor
+            drawRect(raster, sf::Vector2i(0, resolutionScreen.y / 2), { resolutionScreen.x, resolutionScreen.y / 2 }, floorColor);
 
-                // Fill image with blue color for sky
-                DrawRect(raster, sf::Vector2i(0, 0), { resolutionScreen.x, resolutionScreen.y / 2 }, sf::Color::Blue);
-                //Fill image with brown color for floor
-                DrawRect(raster, sf::Vector2i(0, resolutionScreen.y / 2), { resolutionScreen.x, resolutionScreen.y / 2 }, floorColor);
-
-                //auto end = GetTickCount64();
-                //auto delta = (end - start) / 1000.0f;
-                //printf("Time drawRect : %f s\n", delta);
-
-            }
-
-            {
-                //auto start = GetTickCount64();
-
-                RasterizeScene(camPos, camDir, raster, reinterpret_cast<int*>(g_worldMap), g_mapWidth, g_mapHeight);
-
-                //auto end = GetTickCount64();
-                //auto delta = (end - start) / 1000.0f;
-                //printf("Time RasterizeScene : %f s\n", delta);
-                //printf("\n\n\n");
-
-            }
-
+            RasterizeScene(camPos, camDir, raster, reinterpret_cast<int*>(g_worldMap), g_mapWidth, g_mapHeight);
             // Update texture from image
             rasterTex.loadFromImage(raster);
         }
@@ -519,11 +489,6 @@ int main()
         window.setView(window.getDefaultView());
 
         window.display();
-
-        //auto end = GetTickCount64();
-        //auto delta = (end - start) / 1000.0f;
-        //printf("Time total : %f s\n", delta);
-        //printf("\n\n\n");
     }
 
     return 0;
