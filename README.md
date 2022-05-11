@@ -40,7 +40,7 @@ Je trouve ce résultat très étonnant car je pensais que tout le plus gros prob
 En effet, j'ai essayé de me coller contre un mur pour obliger la fonction `RasterizeScene` à set tous les pixels de l'écran et les performances de cette fonction sont devenu identiques à `DrawRect` en oscillant aussi antre 15.6ms et 17.2ms.  
   
 Enfin j'ai mesuré `GetFirstAreaFound` que je pensais être la fonction la plus lourde dans `RasterizeScene`.  
-Mais le résultat était entre 6ms et 8ms pour afficher tout l'écran. Et plus je me rapprochais plus cela baissé jusqu'à atteindre 0ms si je colle un mur de face.
+Le résultat était entre 6ms et 8ms pour afficher tout l'écran. Et plus je me rapprochais plus cela baissé jusqu'à atteindre 0ms si je colle un mur de face.
  
 Le problème de cette fonction vient que j'ai eu comme idée de regarder dans la map toutes les cases en fonctions de la direction du Raycast obtenu avec la fonction `GetRayDir`. Par exemple si GetRayDir me retourne comme vecteur `{0.5f, 0.5f}` alors je regardais quelle était la case se trouvant en  coordonné de ma position actuelle + `(0.5f, 0.5f)`. Et je rajoute à chaque fois le vecteur de `GetRayDir` jusqu'à trouver une case contenant un mur. Pour ensuite appeler la fonction `GetImpactedWallOfArea` qui regarde précisément quelle est la coordonnée exacte du mur touché.  
 Cependant cette méthode pose un problème. En effet en me déplaçant comme cela en fonction de `GetRayDir` je loupais des cases car le déplacement était trop grand. 
