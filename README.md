@@ -50,7 +50,7 @@ J'ai donc divisé le résultat obtenu par `GetRayDir` par 100 afin d'être persu
   
 Pour le problème de changer les pixels de couleur je me suis rappelé qu'on avait vu en cours la possibilité de passer des vertex à la carte graphique afin de lui dire de remplir très rapidement une zone en triangle.  
 J'ai donc regardé si SFML propose de faire cela et heureusement c'est bel est bien le cas avec des VertexArray.
-J'ai donc refait ma fonction DrawRect pour remplace une boucle de SetPixel un par un par l'ajout de vertex pour former des triangles.   
+J'ai donc refait ma fonction DrawRect pour remplacer une boucle de SetPixel un par un par l'ajout de vertex pour former des triangles.   
 Grâce à cela je suis passé de 15ms à 0ms car le temps était désormais trop bas pour être mesuré.
 J'ai mesuré ensuite le temps que prend le nouveau DrawRect si on l'appelle 100 000 fois d'affilé et cela prend seulement 3ms ! Le gain de performance est énorme.   
    
