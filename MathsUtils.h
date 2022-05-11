@@ -127,8 +127,7 @@ inline sf::Vector2f FloorfVector(const sf::Vector2f& vector) {
 
 inline float GetDistanceBetween2Points(const sf::Vector2f& point1, const sf::Vector2f& point2)
 {
-    return sqrtf(powf(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2));
-    return sqrtf(powf(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2));
+    return sqrtf(powf(point2.x - point1.x, 2) + powf(point2.y - point1.y, 2));
 }
 
 inline float NormalizeFloat(float value, float max, float min = 0.f)
@@ -138,4 +137,8 @@ inline float NormalizeFloat(float value, float max, float min = 0.f)
 
 inline float ClampFloat(const float& value, const float& min, const float& max) {
     return (value > max) ? max : (value < min) ? min : value;
+}
+
+inline int ConvertCoordsInOneDimension(const sf::Vector2f& coords, int lenghtYArray) {
+    return coords.x * lenghtYArray + coords.y;
 }

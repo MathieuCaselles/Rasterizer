@@ -27,12 +27,10 @@ std::ostream& operator<<(std::ostream& os, const sf::Vector2u& vector2D)
 /// <param name="rowStart">Starting height of the line </param>
 /// <param name="rowEnd">Ending height of the line  </param>
 /// <param name="color"></param>
-void DrawVerticalLine(sf::Image& image, int x, int yStart, int yEnd, const sf::Color& color)
+void DrawVerticalLine(sf::VertexArray& image, int x, int yStart, int yEnd, const sf::Color& color)
 {
-    for (int y = yStart; y <= yEnd; y++)
-    {
-        image.setPixel(x, y, color);
-    }
+    image[x*2] = sf::Vertex(sf::Vector2f( x, yStart ), color);
+    image[x*2+1] = sf::Vertex(sf::Vector2f(x, yEnd), color);
 }
 
 
@@ -45,28 +43,35 @@ void DrawVerticalLine(sf::Image& image, int x, int yStart, int yEnd, const sf::C
 /// <param name="color"></param>
 /// <param name="filled">if true rect will be filled with color </param>
 /// 
-void DrawRect(sf::Image& image, const sf::Vector2i& origin, const sf::Vector2i& size, const sf::Color& color, bool filled = true)
+void DrawRect(sf::VertexArray& vertexArrayOfTriangleFan, const sf::Vector2i& origin, const sf::Vector2i& size, const sf::Color& color, sf::Texture& textureWall)
 {
-  
-    for (int y = 0; y < size.y; ++y)
-    {
-        for (int x = 0; x < size.x; !filled && x > 0 && x < size.x - 1 ? x += size.x - 1 : ++x)
-        {
-            image.setPixel(origin.x + x, origin.y + y, color);
-        }
-    }
+    sf::Vector2u textureSize = textureWall.getSize();
+
+    vertexArrayOfTriangleFan[0] = sf::Vertex((sf::Vector2f)origin, color, sf::Vector2f(0, 0));
+    vertexArrayOfTriangleFan[1] = sf::Vertex({ (float)(origin.x + size.x), (float)origin.y }, color, sf::Vector2f(0, textureSize.y - 1));
+    vertexArrayOfTriangleFan[2] = sf::Vertex((sf::Vector2f)(origin + size), color, sf::Vector2f(textureSize.x - 1, textureSize.y - 1));
+    vertexArrayOfTriangleFan[3] = sf::Vertex({ (float)origin.x, (float)(origin.y + size.y) }, color,
+        sf::Vector2f(textureSize.x - 1, 0)
+    );
 }
+
 
 
 /// <summary>
 ///  The World map
 /// >0 is a wall
 /// </summary>
+const sf::Color g_Colors[6] = { 
+    sf::Color::White, 
+    sf::Color::Red, 
+    sf::Color::Yellow, 
+    sf::Color::Magenta, 
+    sf::Color::Green, 
+    sf::Color::Cyan 
+};
 
 static const int g_mapWidth = 24;
 static const int g_mapHeight = 24;
-
-const sf::Color g_Color[6] = { sf::Color::White, sf::Color::Red, sf::Color::Yellow, sf::Color::Magenta, sf::Color::Green, sf::Color::Black };
 
 int g_worldMap[g_mapWidth][g_mapHeight] =
 {
@@ -97,10 +102,11 @@ int g_worldMap[g_mapWidth][g_mapHeight] =
 };
 
 
+
 // MAP TEST
 //static const int g_mapWidth = 6;
 //static const int g_mapHeight = 6;
-
+//
 //int g_worldMap[g_mapWidth][g_mapHeight] =
 //{
 //  {1,1,1,1,1,1},
@@ -111,6 +117,7 @@ int g_worldMap[g_mapWidth][g_mapHeight] =
 //  {1,1,1,1,1,1},
 //};
 
+sf::VertexArray g_vertexArraysInWalls[g_mapWidth * g_mapHeight];
 
 //calculate ray direction from abscisse in normalized 0-1 and camera direction
 inline sf::Vector2f GetRayDir(float x,const sf::Vector2f& camDir)
@@ -121,10 +128,6 @@ inline sf::Vector2f GetRayDir(float x,const sf::Vector2f& camDir)
     sf::Vector2f rayDir = camDir + rightVec * 0.66f*camX;
     return Normalize(rayDir);
 }
-
-
-
-
 
 /// <summary>
 /// Return rotation sign (-1 right, 1 left, 0 no rotation) and position delta vector based on current inputs
@@ -158,16 +161,124 @@ float GetCameraMovementFromInput(float& deltaPos)
 
 
 
-inline bool CantFindHorizontalWall(float angle) {
-    return ((abs(angle) >= 0.f && abs(angle) <= 1.f) || (abs(angle) >= 179.f && abs(angle) <= 181.f));
-}
-inline bool CantFindVerticalWall(float angle) {
-    return ((abs(angle) >= 89.f && abs(angle) <= 91.f) || (abs(angle) >= 269.f && abs(angle) <= 271.f));
-}
+
+
 
 inline int GetAreaValue(sf::Vector2f area){
     return g_worldMap[(int)floorf(area.x)][(int)floorf(area.y)];
 }
+
+void DrawWall(sf::VertexArray* vertexArraysInWalls, const sf::Vector2f& lastArea, const float firstHeightWall, const float lastHeightWall, const float switchFaceWall,
+    const float firstColumnWall, const float lastColumnWall, const float switchFaceColumnWall, const sf::Texture& texture, const sf::Color* colors, const sf::Vector2i& projectionPlane, const sf::Vector2i& centerProjectionPlane) {
+
+    const float startYFirst = centerProjectionPlane.y - firstHeightWall / 2.f;
+    const float startYLast = centerProjectionPlane.y - lastHeightWall / 2.f;
+    sf::VertexArray& vertexArray = vertexArraysInWalls[ConvertCoordsInOneDimension(lastArea, g_mapHeight)];
+    sf::Vector2u size = texture.getSize();
+    if (switchFaceWall != firstHeightWall && switchFaceWall != lastHeightWall)
+    {
+
+        vertexArray.resize(6);
+        const float startYMax = centerProjectionPlane.y - switchFaceWall / 2.f;
+        vertexArray[0] = sf::Vertex(
+            {
+                projectionPlane.x - 1 - switchFaceColumnWall,
+                startYMax,
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(0, 0)
+            );
+        vertexArray[1] = sf::Vertex(
+            {
+                projectionPlane.x - 1 - lastColumnWall,
+                startYLast
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(0, size.y - 1)
+
+        );
+        vertexArray[2] = sf::Vertex(
+            {
+                projectionPlane.x - 1 - lastColumnWall,
+                startYLast + lastHeightWall - 1
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(size.x - 1, size.y - 1)
+
+
+        );
+        vertexArray[3] = sf::Vertex(
+            {
+                projectionPlane.x - 1 - switchFaceColumnWall,
+                startYMax + switchFaceWall - 1
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(size.x - 1, 0)
+        );
+        vertexArray[4] = sf::Vertex(
+            {
+                projectionPlane.x - firstColumnWall,
+                startYFirst + firstHeightWall - 1
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(size.x - 1, size.y - 1)
+
+
+        );
+        vertexArray[5] = sf::Vertex(
+            {
+                projectionPlane.x - firstColumnWall,
+                startYFirst
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(0, size.y - 1)
+
+        );
+
+    }
+    else {
+
+        vertexArray.resize(4);
+        vertexArray[0] = sf::Vertex(
+            {
+                projectionPlane.x - firstColumnWall,
+                startYFirst
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(0, 0)
+
+        );
+        vertexArray[1] = sf::Vertex(
+            {
+                projectionPlane.x - 1 - lastColumnWall,
+                startYLast
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(0, size.y - 1)
+
+        );
+        vertexArray[2] = sf::Vertex(
+            {
+                projectionPlane.x - 1 - lastColumnWall,
+                startYLast + lastHeightWall - 1
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(size.x - 1, size.y - 1)
+
+        );
+        vertexArray[3] = sf::Vertex(
+            {
+                projectionPlane.x - firstColumnWall,
+                startYFirst + firstHeightWall - 1
+            },
+            colors[GetAreaValue(lastArea)],
+            sf::Vector2f(size.x - 1, 0)
+
+        );
+
+    }
+}
+
 
 const sf::Vector2f GetFirstAreaFound(const sf::Vector2f& cameraPosition, const sf::Vector2f& rayDirection) {
     const float reducedDistance = 100.f; //allows you not to miss any area in map
@@ -193,6 +304,10 @@ const sf::Vector2f GetFirstAreaFound(const sf::Vector2f& cameraPosition, const s
 
 
 
+
+
+// Search for the wall in a area start 
+// ------------------------------------------------------------------
 enum SideOfTheSquare {
     TOP , 
     RIGHT, 
@@ -334,6 +449,10 @@ const sf::Vector2f GetImpactedWallOfArea(const sf::Vector2f& area, const sf::Vec
 
     return GetImpactWallInArea(impactedSide, area, sizeAdjacentSide, sizeOpposeSide);
 }
+// -------------------------------------------------------------------
+// Search for the wall in a area End 
+
+
 
 
 
@@ -341,50 +460,87 @@ const sf::Vector2f GetImpactedWallOfArea(const sf::Vector2f& area, const sf::Vec
 
 // Solution start 
 // ------------------------------------------------------------------
-static const float g_cameraHeight = 1.f / 2.f;
-static const float g_fov = 66.f;  // It's the result if I print the angle between GetRayDir(0, cameraDirection) and GetRayDir(1,cameraDirection)
-static const float g_halfFov = g_fov / 2.f;
-static const sf::Vector2i g_projectionPlane = { 1920, 1080 };
-
-const sf::Vector2i g_centerprojectionPlane = g_projectionPlane / 2;
-const float g_columnWidth = g_fov / g_projectionPlane.x;
-const float g_distanceToProjectionPlane = g_centerprojectionPlane.x / std::tanf(DegreeToRadian(g_halfFov));
 
 
-void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& cameraDirection, sf::Image& raster, const int* worldMap, int W, int H)
+void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& cameraDirection, 
+    sf::VertexArray* raster, sf::Texture& texture, const sf::Vector2i& projectionPlane, const sf::Vector2i& centerProjectionPlane, 
+    float fov, float distanceToProjectionPlane, const sf::Color* colors)
 {
-    for (float column = 0.f; column < g_projectionPlane.x; ++column)
+    sf::Vector2f lastArea(FLOAT_MAX, FLOAT_MAX);
+    sf::Vector2f lastWall(FLOAT_MAX, FLOAT_MAX);
+
+    float firstHeightWall = 0.f, switchFaceWall = 0.f, lastHeightWall = 0.f;
+    float firstColumnWall = 0.f, switchFaceColumnWall = 0.f, lastColumnWall = 0.f;
+
+    for (float column = 0.f; column < projectionPlane.x; ++column)
     {
-        const sf::Vector2f rayDirection = GetRayDir(NormalizeFloat(column, g_projectionPlane.x - 1), cameraDirection);
+        const sf::Vector2f rayDirection = GetRayDir(NormalizeFloat(column, projectionPlane.x - 1), cameraDirection);
         const sf::Vector2f area = GetFirstAreaFound(cameraPosition, rayDirection);
         const sf::Vector2f wall = GetImpactedWallOfArea(area, rayDirection);
 
-        const float angleThatCausesDistortion = (g_fov / 2) * ((2 * NormalizeFloat(column, g_projectionPlane.x - 1)) - 1);
+        const float angleThatCausesDistortion = (fov / 2) * ((2 * NormalizeFloat(column, projectionPlane.x - 1)) - 1);
         const float correctionDistortion = cosf(DegreeToRadian(angleThatCausesDistortion));
         float distanceToWall = GetDistanceBetween2Points(cameraPosition, wall) * correctionDistortion;
 
-        const float heightWall = 1.f / distanceToWall * g_distanceToProjectionPlane;
-        const int startY = g_centerprojectionPlane.y - heightWall / 2;
+        const float heightWall = 1.f / distanceToWall * distanceToProjectionPlane;
+        const int startY = centerProjectionPlane.y - heightWall / 2;
 
-        auto start = GetTickCount64();
+        if (lastArea.x == FLOAT_MAX)
+        {
+            lastArea = FloorfVector(area);
+            firstHeightWall = heightWall;
+            firstColumnWall = column;
+            switchFaceWall = heightWall;
+            lastWall = wall;
+        }
+        if (lastArea != FloorfVector(area) || column + 1 == projectionPlane.x)
+        {
 
-// Fill image with blue color for sky
-        DrawVerticalLine(
-            raster,
-            g_projectionPlane.x - 1 - column, // because get ray dir draws rays from right to left
-            ClampFloat(startY, 0, g_projectionPlane.y - 1),
-            ClampFloat(startY + heightWall - 1, 0, g_projectionPlane.y - 1),
-            g_Color[GetAreaValue(area)]
-        );
-        auto end = GetTickCount64();
-        auto delta = (end - start) / 1000.0f;
-        printf("Time DrawVerticalLine : %f s\n", delta);
+            DrawWall(raster, lastArea, firstHeightWall, lastHeightWall, switchFaceWall, firstColumnWall, lastColumnWall, switchFaceColumnWall, texture, colors, projectionPlane, centerProjectionPlane);
+
+            lastArea = FloorfVector(area);
+            firstHeightWall = heightWall;
+            lastHeightWall = heightWall;
+            switchFaceWall = heightWall;
+            firstColumnWall = column;
+
+
+        }
+        if (
+            FloorfVector(lastWall) != FloorfVector(wall) 
+            || rayDirection.x > 0.f && rayDirection.y > 0.f && (lastWall.x - floorf(lastWall.x) == 0.f && wall.x - floorf(wall.x) != 0.f || lastWall.x - floorf(lastWall.y) == 0.f && wall.y - floorf(wall.y) != 0.f) 
+            )
+        {
+            switchFaceWall = heightWall;
+            switchFaceColumnWall = column;
+        }
+        lastHeightWall = heightWall;
+        lastColumnWall = column;
+        lastWall = wall;
+
+
+
+            // Fill image with blue color for sky
+            //DrawVerticalLine(
+            //    raster,
+            //    g_projectionPlane.x - 1 - column, // because get ray dir draws rays from right to left
+            //    ClampFloat(startY, 0, g_projectionPlane.y - 1),
+            //    ClampFloat(startY + heightWall - 1, 0, g_projectionPlane.y - 1),
+            //    sf::Color::Red
+            //);
+        
 
     }
 }
 // -------------------------------------------------------------------
 // Solution End 
 
+static const float g_fov = 66.f;  // It's the result if I print the angle between GetRayDir(0, cameraDirection) and GetRayDir(1,cameraDirection)
+static const float g_halfFov = g_fov / 2.f;
+static const sf::Vector2i g_projectionPlane = { 1920, 1080 };
+
+const sf::Vector2i g_centerProjectionPlane = g_projectionPlane / 2;
+const float g_distanceToProjectionPlane = g_centerProjectionPlane.x / std::tanf(DegreeToRadian(g_halfFov));
 
 
 int main()
@@ -402,24 +558,44 @@ int main()
     {
         return 0;
     }
-
+    sf::Texture textureWall;
+    if (!textureWall.loadFromFile("texture/wall.jpg"))
+    {
+        return 0;
+    }
     sf::Text text;
     text.setFont(font); // font is a sf::Font
     text.setCharacterSize(20); // in pixels, not points!
     text.setFillColor(sf::Color::Black);
 
     // Image
-    sf::Image raster;
-    raster.create(window.getSize().x, window.getSize().y, sf::Color::Black);
+    //sf::Image raster;
+    //raster.create(window.getSize().x, window.getSize().y, sf::Color::Black);
 
-    sf::Texture rasterTex;
-    rasterTex.loadFromImage(raster);
-    sf::Sprite test(rasterTex);
+
+    /// TEST ///
+
+    sf::VertexArray sky(sf::TriangleFan, 4);
+    sf::VertexArray floor(sf::TriangleFan, 4);
+    sf::VertexArray rasterVertex(sf::Lines, 2 * 1920);
+
+    //init g_vertexArraysInWalls
+    std::fill_n(
+        g_vertexArraysInWalls, 
+        g_mapWidth * g_mapHeight,
+        sf::VertexArray(sf::TriangleFan)
+    );
+   ////////////
+
+    //sf::Texture rasterTex;
+    //rasterTex.loadFromImage(raster);
+    //sf::Sprite test(rasterTex);
 
     const sf::Color floorColor(75, 43, 43);
 
     // Initial Camera position
     sf::Vector2f camPos(22, 12);
+    //sf::Vector2f camPos(4.5f, 3.5f);
     // Initial camera direction vector
     sf::Vector2f camDir(-1.f, 0.f);
     // Camera rotation in speed in degree per second
@@ -432,6 +608,22 @@ int main()
     sf::Clock clock;
     sf::Time fixedPhysic = sf::microseconds(16666);
     sf::Time updateTime;
+
+    {
+        //auto start = GetTickCount64();
+
+        // Fill image with blue color for sky
+        DrawRect(sky, sf::Vector2i(0, 0), { resolutionScreen.x, resolutionScreen.y / 2 }, sf::Color::Blue, textureWall);
+
+
+        //Fill image with brown color for floor
+        DrawRect(floor, sf::Vector2i(0, resolutionScreen.y / 2), { resolutionScreen.x, resolutionScreen.y / 2 }, floorColor, textureWall);
+
+        //auto end = GetTickCount64();
+        //auto delta = (end - start) / 1000.0f;
+        //printf("Time drawRect : %f s\n", delta);
+
+    }
     while (window.isOpen())
     {
         //auto start = GetTickCount64();
@@ -467,7 +659,13 @@ int main()
             // Update physics
             camDir = RotateVector(camDir, rotationSign * rotationSpeed * fixedPhysic.asSeconds());
             camDir = Normalize(camDir);
-            camPos += camDir * deltaPos * movementSpeed * fixedPhysic.asSeconds();
+
+            const sf::Vector2f nextPosition = FloorfVector(camPos + camDir * deltaPos * movementSpeed * fixedPhysic.asSeconds());
+
+            // add collision int walls inside map
+            if (GetAreaValue(nextPosition) == 0)
+                camPos += camDir * deltaPos * movementSpeed * fixedPhysic.asSeconds();
+
 
             // Clamp world position
             camPos = ClampVector(camPos, sf::Vector2f(0, 0), sf::Vector2f(g_mapWidth, g_mapHeight));
@@ -479,24 +677,19 @@ int main()
         window.clear(sf::Color(0, 128, 0));
 
         {
-            {
-                //auto start = GetTickCount64();
 
-                // Fill image with blue color for sky
-                DrawRect(raster, sf::Vector2i(0, 0), { resolutionScreen.x, resolutionScreen.y / 2 }, sf::Color::Blue);
-                //Fill image with brown color for floor
-                DrawRect(raster, sf::Vector2i(0, resolutionScreen.y / 2), { resolutionScreen.x, resolutionScreen.y / 2 }, floorColor);
-
-                //auto end = GetTickCount64();
-                //auto delta = (end - start) / 1000.0f;
-                //printf("Time drawRect : %f s\n", delta);
-
-            }
 
             {
                 //auto start = GetTickCount64();
 
-                RasterizeScene(camPos, camDir, raster, reinterpret_cast<int*>(g_worldMap), g_mapWidth, g_mapHeight);
+                for (auto& vertexArray : g_vertexArraysInWalls)
+                {
+                    vertexArray.clear();
+                }
+                //rasterVertex.clear();
+                //rasterVertex.resize(2 * 1920);
+
+                RasterizeScene(camPos, camDir, g_vertexArraysInWalls, textureWall, g_projectionPlane, g_centerProjectionPlane, g_fov, g_distanceToProjectionPlane, g_Colors);
 
                 //auto end = GetTickCount64();
                 //auto delta = (end - start) / 1000.0f;
@@ -506,13 +699,22 @@ int main()
             }
 
             // Update texture from image
-            rasterTex.loadFromImage(raster);
+            //rasterTex.loadFromImage(raster);
         }
 
         text.setString("Camera Position : (" + std::to_string(camPos.x) + ", " + std::to_string(camPos.y) 
             + ")\nCamera Rotation : (" + std::to_string(camDir.x) + ", " + std::to_string(camDir.y) + ")");
 
-        window.draw(test);
+        //window.draw(test);
+        window.draw(sky);
+        window.draw(floor);
+        //window.draw(rasterVertex, &textureWall);
+
+        for (auto& vertexArray : g_vertexArraysInWalls)
+        {
+            window.draw(vertexArray, &textureWall);
+        }
+
 
         window.draw(text);
         // UI

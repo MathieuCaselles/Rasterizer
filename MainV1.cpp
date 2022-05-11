@@ -158,13 +158,6 @@ float GetCameraMovementFromInput(float& deltaPos)
 
 
 
-inline bool CantFindHorizontalWall(float angle) {
-    return ((abs(angle) >= 0.f && abs(angle) <= 1.f) || (abs(angle) >= 179.f && abs(angle) <= 181.f));
-}
-inline bool CantFindVerticalWall(float angle) {
-    return ((abs(angle) >= 89.f && abs(angle) <= 91.f) || (abs(angle) >= 269.f && abs(angle) <= 271.f));
-}
-
 inline int getAreaValue(sf::Vector2f area){
     return g_worldMap[(int)floorf(area.x)][(int)floorf(area.y)];
 }
@@ -341,13 +334,11 @@ const sf::Vector2f GetImpactedWallOfArea(const sf::Vector2f& area, const sf::Vec
 
 // Solution start 
 // ------------------------------------------------------------------
-static const float g_cameraHeight = 1.f / 2.f;
 static const float g_fov = 66.f;  // It's the result if I print the angle between GetRayDir(0, cameraDirection) and GetRayDir(1,cameraDirection)
 static const float g_halfFov = g_fov / 2.f;
 static const sf::Vector2i g_projectionPlane = { 1920, 1080 };
 
 const sf::Vector2i g_centerprojectionPlane = g_projectionPlane / 2;
-const float g_columnWidth = g_fov / g_projectionPlane.x;
 const float g_distanceToProjectionPlane = g_centerprojectionPlane.x / std::tanf(DegreeToRadian(g_halfFov));
 
 
