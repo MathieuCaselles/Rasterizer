@@ -48,7 +48,7 @@ J'ai donc divisé le résultat obtenu par `GetRayDir` par 100 afin d'être persu
   
 ### 2- Comment améliorer ces performances ?
 
-Pour les problème de remplissage de pixel j'ai d'abord pensé à mettre en place un upscale en divisant la définition par 2 ou 3. Pour ensuite dessiner des rectanges verticaux de quelques pixels de largeurs au lieu de dessiner des lignes d'un pixel ce qui réduirait grandement le nombre de raycast à effectuer.  
+Pour les problèmes de remplissage de pixel j'ai d'abord pensé à mettre en place un upscale en divisant la définition par 2 ou 3. Pour ensuite dessiner des rectanges verticaux de quelques pixels de largeurs au lieu de dessiner des lignes d'un pixel ce qui réduirait grandement le nombre de raycast à effectuer.  
 Cependant cela serait plus contourner le problème que vraiment le résoudre et cela rendrait en contre partit un rendu avec un effet d'escalier.  
   
 Je me suis ensuite rappelé qu'on avait vu en cours la possibilité de passer des vertex à la carte graphique afin de lui dire de remplir très rapidement une zone en triangle.  
