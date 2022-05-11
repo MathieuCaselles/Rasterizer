@@ -47,20 +47,20 @@ Cependant cette méthode pose un problème. En effet en me déplaçant comme cel
 J'ai donc divisé le résultat obtenu par `GetRayDir` par 100 afin d'être persuadé de ne louper aucune case. Ce qui provoque en conséquence un bien plus grand nombre de boucle pour trouver une case possédant un mur.  
   
 ### 2- Comment améliorer ces performances ?
-
-Pour les problèmes de remplissage de pixel j'ai d'abord pensé à mettre en place un upscale en divisant la définition par 2 ou 3. Pour ensuite dessiner des rectanges verticaux de quelques pixels de largeurs au lieu de dessiner des lignes d'un pixel ce qui réduirait grandement le nombre de raycast à effectuer.  
-Cependant cela serait plus contourner le problème que vraiment le résoudre et cela rendrait en contre partit un rendu avec un effet d'escalier.  
   
-Je me suis ensuite rappelé qu'on avait vu en cours la possibilité de passer des vertex à la carte graphique afin de lui dire de remplir très rapidement une zone en triangle.  
+Pour le problème de changer les pixels de couleur je me suis rappelé qu'on avait vu en cours la possibilité de passer des vertex à la carte graphique afin de lui dire de remplir très rapidement une zone en triangle.  
 J'ai donc regardé si SFML propose de faire cela et heureusement c'est bel est bien le cas avec des VertexArray.
 J'ai donc refait ma fonction DrawRect pour remplace une boucle de SetPixel un par un par l'ajout de vertex pour former des triangles.   
 Grâce à cela je suis passé de 15ms à 0ms car le temps était désormais trop bas pour être mesuré.
 J'ai mesuré ensuite le temps que prend le nouveau DrawRect si on l'appelle 100 000 fois d'affilé et cela prend seulement 3ms ! Le gain de performance est énorme.   
    
 J'ai ensuite fait de même avec la fonction `DrawVerticalLine` en traçant donc des lignes au lieu de triangles et le gain de performance était aussi gros. Cependant, au vu de la dernière étape du tp à savoir rajouter une texture aux murs, j'ai préféré me passer de cette fonction pour dessiner mes murs à partir de triangles. Comme cela j'ai juste eu à rajouter les coordonnées de ma texture aux vertex pour que ça fonctionne.  
+    
+    
+Concernant mon algorithme de recherche de murs, j'ai d'abord pensé à mettre en place un upscale en divisant la définition par 2 ou 3. Pour ensuite dessiner des rectanges verticaux de quelques pixels de largeurs au lieu de dessiner des lignes d'un pixel ce qui réduirait grandement le nombre de raycast à effectuer et donc de détection de murs.
+Cependant cela serait plus contourner le problème de recherche de murs que vraiment le résoudre et cela rendrait en contre partit un rendu avec un effet d'escalier.    
   
-  
-Concernant mon algorithme de recherche de murs, je pense qu'il faut entièrement refaire l'algorithme à 0 et trouver un moyen de pourvoir détecter directement la prochaine intersection d'une case depuis le point de départ ou depuis la case regardé précédemment.     
+Je pense qu'il faut entièrement refaire l'algorithme à 0 et trouver un moyen de pourvoir détecter directement la prochaine intersection d'une case depuis le point de départ ou depuis la case regardé précédemment.     
 Cela réduirait drastiquement le nombre de boucle car une boucle permettrait de trouver à coup sûr la prochaine case à vérifier en ayant en plus déjà l'emplacement du prochain mur touché s'il y a un mur.    
 Cela serait bien plus performant que de se déplacer très légèrement en boucle dans la direction du raycast jusqu'à atterrir à l'intérieur d'une case possédant un mur pour ensuite calculer où le mur a été touché en fonction du raycast.  
 C'est le seul algorithme que je n'ai malheureusement pas optimisé par manque de temps ce qui est assez frustrant.
