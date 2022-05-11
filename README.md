@@ -57,10 +57,7 @@ J'ai mesuré ensuite le temps que prend le nouveau DrawRect si on l'appelle 100 
 J'ai ensuite fait de même avec la fonction `DrawVerticalLine` en traçant des lignes de VertexArray et le gain de performance était aussi gros. Cependant, au vu de la dernière étape du tp à savoir rajouter une texture aux murs, j'ai préféré me passer de cette fonction pour dessiner mes murs à partir de triangles. Comme cela j'ai juste eu à rajouter les coordonnées de ma texture aux vertex pour que ça fonctionne.  
     
     
-Concernant mon algorithme de recherche de murs, j'ai d'abord pensé à mettre en place un upscale en divisant la définition par 2 ou 3. Pour ensuite dessiner des rectanges verticaux de quelques pixels de largeurs au lieu de dessiner des lignes d'un pixel ce qui réduirait grandement le nombre de raycast à effectuer et donc de détection de murs.
-Cependant cela serait plus contourner le problème de recherche de murs que vraiment le résoudre et cela rendrait en contre partit un rendu avec un effet d'escalier.    
-  
-Je pense qu'il faut entièrement refaire l'algorithme à 0 et trouver un moyen de pourvoir détecter directement la prochaine intersection d'une case depuis le point de départ ou depuis la case regardé précédemment.     
+Concernant mon algorithme de recherche de murs, je pense qu'il faut entièrement refaire l'algorithme à 0 et trouver un moyen de pourvoir détecter directement la prochaine intersection d'une case depuis le point de départ ou depuis la case regardé précédemment.     
 Cela réduirait drastiquement le nombre de boucle car une boucle permettrait de trouver à coup sûr la prochaine case à vérifier en ayant en plus déjà l'emplacement du prochain mur touché s'il y a un mur.    
 Cela serait bien plus performant que de se déplacer très légèrement en boucle dans la direction du raycast jusqu'à atterrir à l'intérieur d'une case possédant un mur pour ensuite calculer où le mur a été touché en fonction du raycast.  
 C'est le seul algorithme que je n'ai malheureusement pas optimisé par manque de temps ce qui est assez frustrant.
