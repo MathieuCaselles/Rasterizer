@@ -54,7 +54,7 @@ J'ai donc refait ma fonction DrawRect pour remplacer une boucle de SetPixel un p
 Grâce à cela je suis passé de 15ms à 0ms car le temps était désormais trop bas pour être mesuré.
 J'ai mesuré ensuite le temps que prend le nouveau DrawRect si on l'appelle 100 000 fois d'affilé et cela prend seulement 3ms ! Le gain de performance est énorme.   
    
-J'ai ensuite fait de même avec la fonction `DrawVerticalLine` en traçant donc des lignes au lieu de triangles et le gain de performance était aussi gros. Cependant, au vu de la dernière étape du tp à savoir rajouter une texture aux murs, j'ai préféré me passer de cette fonction pour dessiner mes murs à partir de triangles. Comme cela j'ai juste eu à rajouter les coordonnées de ma texture aux vertex pour que ça fonctionne.  
+J'ai ensuite fait de même avec la fonction `DrawVerticalLine` en traçant des lignes de VertexArray et le gain de performance était aussi gros. Cependant, au vu de la dernière étape du tp à savoir rajouter une texture aux murs, j'ai préféré me passer de cette fonction pour dessiner mes murs à partir de triangles. Comme cela j'ai juste eu à rajouter les coordonnées de ma texture aux vertex pour que ça fonctionne.  
     
     
 Concernant mon algorithme de recherche de murs, j'ai d'abord pensé à mettre en place un upscale en divisant la définition par 2 ou 3. Pour ensuite dessiner des rectanges verticaux de quelques pixels de largeurs au lieu de dessiner des lignes d'un pixel ce qui réduirait grandement le nombre de raycast à effectuer et donc de détection de murs.
