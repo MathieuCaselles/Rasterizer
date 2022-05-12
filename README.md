@@ -29,7 +29,8 @@ Pour mesurer les performances, j'ai regardé quelles fonctions prenaient plus ou
     auto delta = (end - start) / 1000.0f;
     printf("Time FunctionToBeTested : %f s\n", delta);
 ```
-
+Les performances mesurés ci-dessous ont été mesuré en mode Debug et non Release.  
+  
 J'ai d'abord regardé le temps que prenait une boucle de jeu. Le temps d'une boucle oscille entre 250ms et 266ms ce qui est catastrophique.  
 C'est tout simplement injouable de jouer à un jeu avec 4fps seulement.  
 
