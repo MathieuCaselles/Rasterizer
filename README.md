@@ -57,8 +57,9 @@ J'ai mesuré ensuite le temps que prend le nouveau DrawRect si on l'appelle 100 
 J'ai ensuite fait de même avec la fonction `DrawVerticalLine` en traçant des lignes de VertexArray et le gain de performance était aussi gros. Cependant, au vu de la dernière étape du tp à savoir rajouter une texture aux murs, j'ai préféré me passer de cette fonction pour dessiner mes murs à partir de triangles. Comme cela j'ai juste eu à rajouter les coordonnées de ma texture aux vertex pour que ça fonctionne.  
     
     
-Concernant mon algorithme de recherche de murs, je pense qu'il faut entièrement refaire l'algorithme à 0 et trouver un moyen de pourvoir détecter directement la prochaine intersection d'une case depuis le point de départ ou depuis la case regardé précédemment.     
-Cela réduirait drastiquement le nombre de boucle car une boucle permettrait de trouver à coup sûr la prochaine case à vérifier en ayant en plus déjà l'emplacement du prochain mur touché s'il y a un mur.    
-Cela serait bien plus performant que de se déplacer très légèrement en boucle dans la direction du raycast jusqu'à atterrir à l'intérieur d'une case possédant un mur pour ensuite calculer où le mur a été touché en fonction du raycast.  
-C'est le seul algorithme que je n'ai malheureusement pas optimisé par manque de temps ce qui est assez frustrant.
-Surtout que je pense que j'avais déjà une bonne base de recherche avec mon algorithme pour détecter la collision avec un mur dans une case.  
+Concernant mon algorithme de recherche de murs, je l'ai totalement refait à 0 de manière bien plus claire à relire, avec moins de lignes de codes et des performances largemment au dessus.  
+Il existe une formule de maths pour détecter tous les murs verticaux à la suite et tous les murs horizontaux à la suite.  
+J'ai donc refais tout l'algoritme à partire de ces formules.  
+La fonction `RasterizeScene` se fait désormais en 0ms avec de temps en temps un pic à 16ms. J'ai d'ailleur souvent eu dans toutes mes mesures ce pic à 16ms et je n'ai pas réussis à trouver d'où il vient.  
+Je pensais que c'était à cause de la manière donc la boucle de gameplay a été faite donc je l'ai refaite à ma façon mais cela n'a rien changé.  
+J'ai fait le `RasterizeScene` 100 fois d'affilé pour avoir une mesure plus précise que 0ms et cela a donné 218ms.

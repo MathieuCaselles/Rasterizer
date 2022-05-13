@@ -102,11 +102,10 @@ int g_worldMap[g_mapWidth][g_mapHeight] =
 };
 
 
-
 // MAP TEST
 //static const int g_mapWidth = 6;
 //static const int g_mapHeight = 6;
-//
+
 //int g_worldMap[g_mapWidth][g_mapHeight] =
 //{
 //  {1,1,1,1,1,1},
@@ -118,6 +117,7 @@ int g_worldMap[g_mapWidth][g_mapHeight] =
 //};
 
 sf::VertexArray g_vertexArraysInWalls[g_mapWidth * g_mapHeight];
+bool wallOnView[g_mapWidth * g_mapHeight];
 
 //calculate ray direction from abscisse in normalized 0-1 and camera direction
 inline sf::Vector2f GetRayDir(float x,const sf::Vector2f& camDir)
@@ -165,7 +165,9 @@ float GetCameraMovementFromInput(float& deltaPos)
 
 
 inline int GetAreaValue(sf::Vector2f area){
-    return g_worldMap[(int)floorf(area.x)][(int)floorf(area.y)];
+    return (area.x < 0.f || area.x > g_mapWidth || area.y < 0.f || area.y > g_mapHeight)
+        ? 0
+        : g_worldMap[(int)floorf(area.x)][(int)floorf(area.y)];
 }
 
 void DrawWall(sf::VertexArray* vertexArraysInWalls, const sf::Vector2f& lastArea, const float firstHeightWall, const float lastHeightWall, const float switchFaceWall,
@@ -279,181 +281,85 @@ void DrawWall(sf::VertexArray* vertexArraysInWalls, const sf::Vector2f& lastArea
     }
 }
 
+const sf::Vector2f GetHoriztonalWallByRayDirection(const sf::Vector2f& cameraPosition, const sf::Vector2f rayDirection, const float angleBewteenAbscissaAndRayDirection, const float tangent) {
+    sf::Vector2f nextIntersection = {
+        0.f,
+        floorf(cameraPosition.y) + (rayDirection.y < 0.f ? -0.0001f : 1.f)
+    };
 
-const sf::Vector2f GetFirstAreaFound(const sf::Vector2f& cameraPosition, const sf::Vector2f& rayDirection) {
-    const float reducedDistance = 100.f; //allows you not to miss any area in map
-    const sf::Vector2f& rayDirectionReduced = rayDirection / reducedDistance;
+    nextIntersection.x = abs(angleBewteenAbscissaAndRayDirection) == 90.f
+        ? cameraPosition.x
+        : cameraPosition.x + (cameraPosition.y - nextIntersection.y) / tangent;
+    const float moveY = rayDirection.y < 0 ? -1.f : 1.f;
+    float moveX = abs(angleBewteenAbscissaAndRayDirection) == 90.f
+        ? 0.f
+        : 1.f / tangent;
+    moveX = abs(moveX) * (rayDirection.x < 0 ? -1 : 1);
 
-    sf::Vector2f nextArea = sf::Vector2f(
-        cameraPosition.x + rayDirectionReduced.x,
-        cameraPosition.y + rayDirectionReduced.y
-    );
-
-
-    while (GetAreaValue(nextArea) == 0)
+    while (GetAreaValue(nextIntersection) == 0)
     {
-        nextArea = {
-            nextArea.x + rayDirectionReduced.x,
-            nextArea.y + rayDirectionReduced.y
-        };
+        nextIntersection.x += moveX;
+        nextIntersection.y += moveY;
+    
+        if (nextIntersection.x < 0.f
+            || nextIntersection.x > g_mapWidth
+            || nextIntersection.y < 0.f
+            || nextIntersection.y > g_mapHeight
+            )
+        {
+            return sf::Vector2f(FLOAT_MAX, FLOAT_MAX);
+        }
     }
-
-    return nextArea;
+    return nextIntersection;
 }
 
+const sf::Vector2f GetVerticalWallByRayDirection(const sf::Vector2f& cameraPosition, const sf::Vector2f rayDirection, const float angleBewteenAbscissaAndRayDirection, const float tangent) {
+    sf::Vector2f nextIntersection = {
+      floorf(cameraPosition.x) + (rayDirection.x < 0.f ? -0.0001f : 1.f),
+      0.f
+    };
 
+    nextIntersection.y = abs(angleBewteenAbscissaAndRayDirection) == 180.f
+        ? cameraPosition.y
+        : cameraPosition.y + (cameraPosition.x - nextIntersection.x) * tangent;
 
+    const float moveX = rayDirection.x < 0 ? -1.f : 1.f;
 
+    float moveY = abs(angleBewteenAbscissaAndRayDirection) == 180.f
+        ? 0.f
+        : tangent;
 
+    moveY = abs(moveY) * (rayDirection.y < 0 ? -1 : 1);
 
-// Search for the wall in a area start 
-// ------------------------------------------------------------------
-enum SideOfTheSquare {
-    TOP , 
-    RIGHT, 
-    BOTTOM, 
-    LEFT,
-    TOP_LEFT ,
-    TOP_RIGHT,
-    BOTTOM_RIGHT,
-    BOTTOM_LEFT
-};
-
-const SideOfTheSquare GetImpactedSide(const sf::Vector2f& area, const sf::Vector2f& vector) {
-    const float angleBewteenAbscissaAndVector = abs(GetAngleBetweenVector({1, 0}, vector));
-    if (vector.x < 0 && vector.y < 0) {
-        const sf::Vector2f normalizeVectorAreaToTopLeft = Normalize(FloorfVector(area) - area);
-        const float angleBewteenAbscissaAndAreaTopLeft = abs(GetAngleBetweenVector({ 1, 0 }, normalizeVectorAreaToTopLeft));
-        if (angleBewteenAbscissaAndVector < angleBewteenAbscissaAndAreaTopLeft)
-        {
-            return TOP;
-        }
-        if (angleBewteenAbscissaAndVector > angleBewteenAbscissaAndAreaTopLeft)
-        {
-            return LEFT;
-        }
-        return TOP_LEFT;
-    }
-
-    if (vector.x >= 0 && vector.y < 0) {
-        const sf::Vector2f normalizeVectorAreaToTopRight = Normalize(sf::Vector2f( floorf(area.x + 1.f), floorf(area.y) ) - area);
-        const float angleBewteenAbscissaAndAreaTopRight = abs(GetAngleBetweenVector({ 1, 0 }, normalizeVectorAreaToTopRight));
-        if (angleBewteenAbscissaAndVector < angleBewteenAbscissaAndAreaTopRight)
-        {
-            return RIGHT;
-        }
-        if (angleBewteenAbscissaAndVector > angleBewteenAbscissaAndAreaTopRight)
-        {
-            return TOP;
-        }
-        return TOP_RIGHT;
-    }
-    if (vector.x >= 0 && vector.y >= 0) {
-        const sf::Vector2f normalizeVectorAreaToBottomRight = Normalize(sf::Vector2f(floorf(area.x + 1.f), floorf(area.y + 1.f)) - area);
-        const float angleBewteenAbscissaAndAreaBottomRight = abs(GetAngleBetweenVector({ 1, 0 }, normalizeVectorAreaToBottomRight));
-        if (angleBewteenAbscissaAndVector < angleBewteenAbscissaAndAreaBottomRight)
-        {
-            return RIGHT;
-        }
-        if (angleBewteenAbscissaAndVector > angleBewteenAbscissaAndAreaBottomRight)
-        {
-            return BOTTOM;
-        }
-        return BOTTOM_RIGHT;
-    }
-
-    const sf::Vector2f normalizeVectorAreaToBottomLeft = Normalize(sf::Vector2f(floorf(area.x), floorf(area.y + 1.f)) - area);
-    const float angleBewteenAbscissaAndAreaBottomLeft = abs(GetAngleBetweenVector({ 1, 0 }, normalizeVectorAreaToBottomLeft));
-    if (angleBewteenAbscissaAndVector < angleBewteenAbscissaAndAreaBottomLeft)
+    while (GetAreaValue(nextIntersection) == 0)
     {
-        return BOTTOM;
+        nextIntersection.x += moveX;
+        nextIntersection.y += moveY;
+
+        if (nextIntersection.x < 0.f 
+            || nextIntersection.x > g_mapWidth 
+            || nextIntersection.y < 0.f 
+            || nextIntersection.y > g_mapHeight
+            )
+        {
+            return sf::Vector2f(FLOAT_MAX, FLOAT_MAX);
+        }
     }
-    if (angleBewteenAbscissaAndVector > angleBewteenAbscissaAndAreaBottomLeft)
-    {
-        return LEFT;
-    }
-    return BOTTOM_LEFT;
+    return nextIntersection;
 }
 
+const sf::Vector2f  GetWallByRayDirection(const sf::Vector2f& cameraPosition, const sf::Vector2f rayDirection) {
+    const float angleBewteenAbscissaAndRayDirection =  GetAngleBetweenVector({ 1.f, 0.f }, rayDirection);
+    const float tangent = tanf(DegreeToRadian(angleBewteenAbscissaAndRayDirection));
 
-const float GetSizeOfAdjacentSide(const SideOfTheSquare& side, const sf::Vector2f& area) {
-    switch (side)
-    {
-        case TOP:
-            return area.y - floorf(area.y);
+  
+    const sf::Vector2f nextIntersectionHorizontal = GetHoriztonalWallByRayDirection(cameraPosition, rayDirection, angleBewteenAbscissaAndRayDirection, tangent);
+    const sf::Vector2f nextIntersectionVertical = GetVerticalWallByRayDirection(cameraPosition, rayDirection, angleBewteenAbscissaAndRayDirection, tangent);
 
-        case RIGHT:
-            return floorf(area.x + 1) - area.x;
-
-        case BOTTOM:
-            return floorf(area.y + 1) - area.y;
-
-        default:
-            return area.x - floorf(area.x);
-    }
+    return GetDistanceBetween2Points(cameraPosition, nextIntersectionHorizontal) < GetDistanceBetween2Points(cameraPosition, nextIntersectionVertical)
+            ? nextIntersectionHorizontal
+            : nextIntersectionVertical;
 }
-
-
-const sf::Vector2f GetImpactWallInArea(const SideOfTheSquare& side, const sf::Vector2f& area, float sizeAdjacentSide, float sizeOpposeSide) {
-    switch (side)
-    {
-        case TOP:
-            return { area.x - sizeOpposeSide, floorf(area.y) };
-
-        case RIGHT:
-            return { ceilf(area.x), area.y - sizeOpposeSide };
-
-        case BOTTOM:
-            return { area.x + sizeOpposeSide, ceilf(area.y) };
-
-        default:
-            return { floorf(area.x), area.y + sizeOpposeSide };
-    }
-}
-
-
-const sf::Vector2f GetImpactedWallOfArea(const sf::Vector2f& area, const sf::Vector2f& rayDirection) {
-    const sf::Vector2f rayDirectionInverted = GetInverseVector(rayDirection);
-    const SideOfTheSquare impactedSide = GetImpactedSide(area, rayDirectionInverted);
-
-    sf::Vector2f directionToImpactedSize;
-    switch (impactedSide)
-    {
-        case TOP_LEFT:
-            return FloorfVector(area);
-        case TOP_RIGHT:
-            return { floorf(area.x + 1.f), floorf(area.y) };
-        case BOTTOM_RIGHT:
-            return { floorf(area.x + 1.f), floorf(area.y + 1.f) };
-        case BOTTOM_LEFT:
-            return { floorf(area.x), floorf(area.y + 1.f) };
-        case TOP:
-            directionToImpactedSize = { 0.f, -1.f };
-            break;
-        case RIGHT:
-            directionToImpactedSize = { 1.f, 0.f };
-            break;
-
-        case BOTTOM:
-            directionToImpactedSize = { 0.f, 1.f };
-            break;
-
-        default:
-            directionToImpactedSize = { -1.f, 0.f };
-    }
-
-
-    float angle = GetAngleBetweenVector(directionToImpactedSize, rayDirectionInverted);
-    const float sizeAdjacentSide = GetSizeOfAdjacentSide(impactedSide, area);
-    const float sizeOpposeSide = sizeAdjacentSide * tanf(DegreeToRadian(angle));
-
-    return GetImpactWallInArea(impactedSide, area, sizeAdjacentSide, sizeOpposeSide);
-}
-// -------------------------------------------------------------------
-// Search for the wall in a area End 
-
-
-
 
 
 
@@ -475,8 +381,7 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
     for (float column = 0.f; column < projectionPlane.x; ++column)
     {
         const sf::Vector2f rayDirection = GetRayDir(NormalizeFloat(column, projectionPlane.x - 1), cameraDirection);
-        const sf::Vector2f area = GetFirstAreaFound(cameraPosition, rayDirection);
-        const sf::Vector2f wall = GetImpactedWallOfArea(area, rayDirection);
+        const sf::Vector2f wall = GetWallByRayDirection(cameraPosition, rayDirection);
 
         const float angleThatCausesDistortion = (fov / 2) * ((2 * NormalizeFloat(column, projectionPlane.x - 1)) - 1);
         const float correctionDistortion = cosf(DegreeToRadian(angleThatCausesDistortion));
@@ -485,20 +390,21 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
         const float heightWall = 1.f / distanceToWall * distanceToProjectionPlane;
         const int startY = centerProjectionPlane.y - heightWall / 2;
 
+
         if (lastArea.x == FLOAT_MAX)
         {
-            lastArea = FloorfVector(area);
+            lastArea = FloorfVector(wall);
             firstHeightWall = heightWall;
             firstColumnWall = column;
             switchFaceWall = heightWall;
             lastWall = wall;
         }
-        if (lastArea != FloorfVector(area) || column + 1 == projectionPlane.x)
+        if (lastArea != FloorfVector(wall) || column + 1 == projectionPlane.x)
         {
 
             DrawWall(raster, lastArea, firstHeightWall, lastHeightWall, switchFaceWall, firstColumnWall, lastColumnWall, switchFaceColumnWall, texture, colors, projectionPlane, centerProjectionPlane);
 
-            lastArea = FloorfVector(area);
+            lastArea = FloorfVector(wall);
             firstHeightWall = heightWall;
             lastHeightWall = heightWall;
             switchFaceWall = heightWall;
@@ -507,8 +413,11 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
 
         }
         if (
-            FloorfVector(lastWall) != FloorfVector(wall) 
-            || rayDirection.x > 0.f && rayDirection.y > 0.f && (lastWall.x - floorf(lastWall.x) == 0.f && wall.x - floorf(wall.x) != 0.f || lastWall.x - floorf(lastWall.y) == 0.f && wall.y - floorf(wall.y) != 0.f) 
+            lastWall.x - floorf(lastWall.x) == 0.f && wall.x - floorf(wall.x) != 0.f
+            || lastWall.x - floorf(lastWall.y) == 0.f && wall.y - floorf(wall.y) != 0.f
+            || lastWall.y == floorf(lastWall.y) && lastWall.y != wall.y
+            || lastWall.y + 0.0001f == floorf(lastWall.y + 0.0001f) && lastWall.y != wall.y
+            || lastWall.x + 0.0001f == floorf(lastWall.x + 0.0001f) && lastWall.x != wall.x
             )
         {
             switchFaceWall = heightWall;
@@ -520,15 +429,14 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
 
 
 
-            // Fill image with blue color for sky
+            //Fill image with blue color for sky
             //DrawVerticalLine(
             //    raster,
-            //    g_projectionPlane.x - 1 - column, // because get ray dir draws rays from right to left
-            //    ClampFloat(startY, 0, g_projectionPlane.y - 1),
-            //    ClampFloat(startY + heightWall - 1, 0, g_projectionPlane.y - 1),
-            //    sf::Color::Red
+            //    projectionPlane.x - 1 - column, // because get ray dir draws rays from right to left
+            //    ClampFloat(startY, 0, projectionPlane.y - 1.f),
+            //    ClampFloat(startY + heightWall - 1, 0, projectionPlane.y - 1.f),
+            //    colors[GetAreaValue(FloorfVector(wall))]
             //);
-        
 
     }
 }
@@ -536,7 +444,7 @@ void RasterizeScene(const sf::Vector2f& cameraPosition, const sf::Vector2f& came
 // Solution End 
 
 static const float g_fov = 66.f;  // It's the result if I print the angle between GetRayDir(0, cameraDirection) and GetRayDir(1,cameraDirection)
-static const float g_halfFov = g_fov / 2.f;
+static const float g_halfFov = 66 / 2.f;
 static const sf::Vector2i g_projectionPlane = { 1920, 1080 };
 
 const sf::Vector2i g_centerProjectionPlane = g_projectionPlane / 2;
@@ -548,7 +456,6 @@ int main()
 
     sf::Vector2i resolutionScreen = g_projectionPlane;
     sf::RenderWindow window(sf::VideoMode(resolutionScreen.x, resolutionScreen.y), "SFML Raycaster");
-
     // Vertical sync to don't waste energy running over 60 FPS
     window.setVerticalSyncEnabled(true);
 
@@ -577,7 +484,7 @@ int main()
 
     sf::VertexArray sky(sf::TriangleFan, 4);
     sf::VertexArray floor(sf::TriangleFan, 4);
-    sf::VertexArray rasterVertex(sf::Lines, 2 * 1920);
+    //sf::VertexArray rasterVertex(sf::Lines, 2 * 1920);
 
     //init g_vertexArraysInWalls
     std::fill_n(
@@ -606,8 +513,6 @@ int main()
 
     // Main loop    
     sf::Clock clock;
-    sf::Time fixedPhysic = sf::microseconds(16666);
-    sf::Time updateTime;
 
     {
         //auto start = GetTickCount64();
@@ -624,77 +529,84 @@ int main()
         //printf("Time drawRect : %f s\n", delta);
 
     }
+
+
+
+
     while (window.isOpen())
     {
-        //auto start = GetTickCount64();
-
         // Update delta time
-        sf::Time elapsed = clock.restart();
-        if (elapsed.asSeconds() > 0.1f)
-            elapsed = sf::seconds(0.1f);
-        updateTime += elapsed;
+        const float deltaTime = clock.restart().asSeconds();
+        //auto startFrame = GetTickCount64();
 
-        // Grab inputs events
+        const float fps = 1.0f / deltaTime;
+
+
+        // PROCESS INPUT START 
+        // ------------------------------------------------------------------
         sf::Event event;
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
-
-            if (event.type == sf::Event::KeyPressed)
-            {
-                if (event.key.code == sf::Keyboard::Left)
-                {
-                }
-            }
         }
 
         // Get inputs
         float deltaPos = 0.0f;
         float rotationSign = GetCameraMovementFromInput(deltaPos);
-
-        // Update Logic and physics at fixed timesteps
-        while (updateTime >= fixedPhysic)
-        {
-            // Update physics
-            camDir = RotateVector(camDir, rotationSign * rotationSpeed * fixedPhysic.asSeconds());
-            camDir = Normalize(camDir);
-
-            const sf::Vector2f nextPosition = FloorfVector(camPos + camDir * deltaPos * movementSpeed * fixedPhysic.asSeconds());
-
-            // add collision int walls inside map
-            if (GetAreaValue(nextPosition) == 0)
-                camPos += camDir * deltaPos * movementSpeed * fixedPhysic.asSeconds();
+        // PROCESS INPUT END 
+        // ------------------------------------------------------------------
 
 
-            // Clamp world position
-            camPos = ClampVector(camPos, sf::Vector2f(0, 0), sf::Vector2f(g_mapWidth, g_mapHeight));
 
-            updateTime -= fixedPhysic;
-        }
+        // UPDATE PHYSICS START 
+        // ------------------------------------------------------------------
+        camDir = RotateVector(camDir, rotationSign * rotationSpeed * deltaTime);
+        camDir = Normalize(camDir);
+
+        const sf::Vector2f nextPosition = FloorfVector(camPos + camDir * deltaPos * movementSpeed * deltaTime);
+
+        // add collision int walls inside map
+        if (GetAreaValue(nextPosition) == 0)
+            camPos += camDir * deltaPos * movementSpeed * deltaTime;
+
+
+        // Clamp world position
+        camPos = ClampVector(camPos, sf::Vector2f(0, 0), sf::Vector2f(g_mapWidth, g_mapHeight));
+        // UPDATE PHYSICS END 
+        // ------------------------------------------------------------------
+        
+
+
+
+
        
-        // Rendering
+        // RENDERING START 
+        // ------------------------------------------------------------------
         window.clear(sf::Color(0, 128, 0));
 
         {
 
 
             {
-                //auto start = GetTickCount64();
+                auto start = GetTickCount64();
 
                 for (auto& vertexArray : g_vertexArraysInWalls)
                 {
                     vertexArray.clear();
+                }/*
+                rasterVertex.clear();
+                rasterVertex.resize(2 * 1920);*/
+                for (size_t i = 0; i < 100; i++)
+                {
+                    RasterizeScene(camPos, camDir, g_vertexArraysInWalls, textureWall, g_projectionPlane, g_centerProjectionPlane, g_fov, g_distanceToProjectionPlane, g_Colors);
+
                 }
-                //rasterVertex.clear();
-                //rasterVertex.resize(2 * 1920);
 
-                RasterizeScene(camPos, camDir, g_vertexArraysInWalls, textureWall, g_projectionPlane, g_centerProjectionPlane, g_fov, g_distanceToProjectionPlane, g_Colors);
-
-                //auto end = GetTickCount64();
-                //auto delta = (end - start) / 1000.0f;
-                //printf("Time RasterizeScene : %f s\n", delta);
-                //printf("\n\n\n");
+                auto end = GetTickCount64();
+                auto delta = (end - start) / 1000.0f;
+                printf("Time RasterizeScene : %f s\n", delta);
+                printf("\n\n\n");
 
             }
 
@@ -702,7 +614,7 @@ int main()
             //rasterTex.loadFromImage(raster);
         }
 
-        text.setString("Camera Position : (" + std::to_string(camPos.x) + ", " + std::to_string(camPos.y) 
+        text.setString("FPS: " + std::to_string((int)roundf(fps)) + "\nCamera Position : (" + std::to_string(camPos.x) + ", " + std::to_string(camPos.y)
             + ")\nCamera Rotation : (" + std::to_string(camDir.x) + ", " + std::to_string(camDir.y) + ")");
 
         //window.draw(test);
@@ -721,11 +633,6 @@ int main()
         window.setView(window.getDefaultView());
 
         window.display();
-
-        //auto end = GetTickCount64();
-        //auto delta = (end - start) / 1000.0f;
-        //printf("Time total : %f s\n", delta);
-        //printf("\n\n\n");
     }
 
     return 0;
