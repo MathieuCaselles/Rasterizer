@@ -59,9 +59,9 @@ De plus, je l'ai retiré de la boucle de gameplay car étant donné que je n'ai 
 J'ai ensuite fait de même avec la fonction `DrawVerticalLine` en traçant des lignes de VertexArray et le gain de performance était aussi gros. Cependant, au vu de la dernière étape du tp à savoir rajouter une texture aux murs, j'ai préféré me passer de cette fonction pour dessiner mes murs à partir de triangles. Comme cela j'ai juste eu à rajouter les coordonnées de ma texture aux vertex pour que ça fonctionne.  
     
     
-Concernant mon algorithme de recherche de murs, je l'ai totalement refait à 0 de manière bien plus claire à relire, avec moins de lignes de codes et des performances largemment au dessus.  
+Concernant mon algorithme de recherche de murs, je l'ai totalement recommencé à 0 de manière bien plus claire à relire, avec moins de lignes de codes et des performances largemment au dessus.  
 Il existe une formule de maths pour détecter tous les murs verticaux à la suite et tous les murs horizontaux à la suite.  
 J'ai donc refais tout l'algoritme à partire de ces formules.  
-La fonction `RasterizeScene` se fait désormais en 0ms avec de temps en temps un pic à 16ms. J'ai d'ailleur souvent eu dans toutes mes mesures ce pic à 16ms et je n'ai pas réussis à trouver d'où il vient.  
+La fonction `RasterizeScene` se fait désormais en 0ms avec de temps en temps un pic à 16ms. J'ai d'ailleur souvent eu dans toutes mes mesures ce pic de 16ms mais je n'ai pas réussis à trouver d'où il vient.  
 Je pensais que c'était à cause de la manière donc la boucle de gameplay a été faite donc je l'ai refaite à ma façon mais cela n'a rien changé.  
 J'ai fait le `RasterizeScene` 100 fois d'affilé pour avoir une mesure plus précise que 0ms et cela a donné 218ms.
