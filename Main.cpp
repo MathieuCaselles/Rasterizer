@@ -589,7 +589,7 @@ int main()
 
 
             {
-                auto start = GetTickCount64();
+                //auto start = GetTickCount64();
 
                 for (auto& vertexArray : g_vertexArraysInWalls)
                 {
@@ -597,16 +597,14 @@ int main()
                 }/*
                 rasterVertex.clear();
                 rasterVertex.resize(2 * 1920);*/
-                for (size_t i = 0; i < 100; i++)
-                {
-                    RasterizeScene(camPos, camDir, g_vertexArraysInWalls, textureWall, g_projectionPlane, g_centerProjectionPlane, g_fov, g_distanceToProjectionPlane, g_Colors);
+       
+                RasterizeScene(camPos, camDir, g_vertexArraysInWalls, textureWall, g_projectionPlane, g_centerProjectionPlane, g_fov, g_distanceToProjectionPlane, g_Colors);
 
-                }
 
-                auto end = GetTickCount64();
+            /*    auto end = GetTickCount64();
                 auto delta = (end - start) / 1000.0f;
                 printf("Time RasterizeScene : %f s\n", delta);
-                printf("\n\n\n");
+                printf("\n\n\n");*/
 
             }
 
