@@ -1,3 +1,7 @@
+Cette branch contient le travail tel qu'il était quand j'avais rendu ce projet dans les temps.    
+Je suis allé plus loin sur la branch 'feature/afterDueDate' où j'ai réussi à faire un algorithme de recherche de murs beaucoup plus optimisé que celui utilisé sur cette branch.    
+
+
 # Rasterizer
 
 Le but de ce projet de Mastère 1 Game Programming est de rendre une scène 3D comme le tout premier jeu en 3D "Wolfenstein" en SFML.
@@ -64,3 +68,8 @@ Cela réduirait drastiquement le nombre de boucle car une boucle permettrait de 
 Cela serait bien plus performant que de se déplacer très légèrement en boucle dans la direction du raycast jusqu'à atterrir à l'intérieur d'une case possédant un mur pour ensuite calculer où le mur a été touché en fonction du raycast.  
 C'est le seul algorithme que je n'ai malheureusement pas optimisé par manque de temps ce qui est assez frustrant.
 Surtout que je pense que j'avais déjà une bonne base de recherche avec mon algorithme pour détecter la collision avec un mur dans une case.  
+  
+  
+Rappel : Cette branch contient le travail tel qu'il était quand j'avais rendu ce projet dans les temps.    
+Je suis allé plus loin sur la branch 'feature/afterDueDate' où j'ai réussi à faire un algorithme de recherche de murs beaucoup plus optimisé que celui utilisé sur cette branch.    
+  
